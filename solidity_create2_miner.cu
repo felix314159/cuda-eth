@@ -7,6 +7,10 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
+#include <cctype>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 #if defined(__CUDACC__)
 #define HD __host__ __device__ __forceinline__
@@ -341,10 +345,43 @@ void print_gpu_info() {
     printf("Maximum concurrent threads: %d\n\n", prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor);
 }
 
-int main() {
-    // your contracts initcode
-    const char *init_code_hex_str = "0x606162";
-    
+static bool read_init_code_from_file(const char *path, std::string &out_hex) {
+    std::ifstream in(path);
+    if (!in.is_open()) {
+        fprintf(stderr, "Failed to open init code file: %s\n", path);
+        return false;
+    }
+    std::stringstream ss;
+    ss << in.rdbuf();
+    std::string contents = ss.str();
+
+    out_hex.clear();
+    out_hex.reserve(contents.size());
+    for (char c : contents) {
+        unsigned char uc = (unsigned char)c;
+        if (std::isspace(uc)) continue;
+        out_hex.push_back(c);
+    }
+    return true;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <path-to-initcode-file>\n", argv[0]);
+        fprintf(stderr, "  The file must contain the contract init code as a hex string (with or without 0x prefix).\n");
+        return 1;
+    }
+
+    std::string init_code_hex;
+    if (!read_init_code_from_file(argv[1], init_code_hex)) {
+        return 1;
+    }
+    if (init_code_hex.empty()) {
+        fprintf(stderr, "Init code file is empty after stripping whitespace.\n");
+        return 1;
+    }
+    const char *init_code_hex_str = init_code_hex.c_str();
+
     const int target_zeroes = 10;   // i usually stop mining at 8, i am poor. goal of this program: find this many leading zeroes in hex address
     int report_zeroes = 6;          // results that lead to report_zeroes or more hex leading zeroes are reported in terminal
     
@@ -534,8 +571,10 @@ int main() {
     return 0;
 }
 
-// Compile & Run (tested on RTX 4070):
-//   nvcc -arch=sm_89 -O3 --use_fast_math -Xcompiler -O3 -std=c++11 -diag-suppress=177 solidity_create2_miner.cu -o create2-miner && ./create2-miner
+// Step 0: Compile ur contract with solc and note the binary string (store it in initcode.txt)
 
-// result can be verified with e.g.:
+// Step 1: Compile & Run (tested on RTX 4070):
+//   nvcc -arch=sm_89 -O3 --use_fast_math -Xcompiler -O3 -std=c++11 -diag-suppress=177 solidity_create2_miner.cu -o create2-miner && ./create2-miner /path/to/initcode.txt
+
+// Optional Step 2: result can be verified with e.g.:
 //      cast create2 --deployer 0x4e59b44847b379578588920cA78FbF26c0B4956C --salt 0x<result> --init-code 0x<your-init-code>
