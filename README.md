@@ -1,4 +1,4 @@
 # cuda-eth-address-miner
-Mines vanity addresses with user-customizable prefix and suffix
+Mines customizable eth vanity addresses and solidity fn selectors to save gas.
 
 ## This is for educational purposes only
