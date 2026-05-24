@@ -435,7 +435,7 @@ int main() {
 }
 
 // Compile & Run (tested on RTX 4070):
-//      nvcc -arch=sm_89 -O3 --use_fast_math -Xcompiler -O3 -std=c++11 -diag-suppress=177 solidity_function_name_miner.cu -o function-miner && ./function-miner
+//      nvcc -arch=sm_89 -O3 --use_fast_math -Xcompiler -O3 -std=c++11 -diag-suppress=177 solidity_function_selector_miner.cu -o function-miner && ./function-miner
 
 // finding 7 leading zeroes is instant (less than 2 sec), finding 8 leading zeroes (an all zeroes selector) takes around 120 sec on my machine
 // e.g.
